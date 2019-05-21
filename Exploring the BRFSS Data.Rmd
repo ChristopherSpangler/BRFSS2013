@@ -1,0 +1,191 @@
+---
+title: "Exploring the BRFSS Data, by Christopher Spangler"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+```{r load-data}
+load("/Users/chrisspangler/MasterStatsWithR/brfss2013.RData")
+
+```
+
+
+
+
+
+## Part 1: Data
+
+How are observations in the sample collected, you may ask? The BRFSS is a telephone survey that uses computer-assisted telephone interview systems in order to collect information. The Telecordia database of telephone exchanges forms the basis of the 2013 BRF SS “sampling frame.” Data processing tasks occur each year on an ongoing basis for the CDC each month. The primary target population is those who reside in a private residence or college housing, who use a cellphone, 18 years or older, and receive 90% or more calls on their cellphone.
+
+Data processing is yearlong, and the CDC keeps track of state data. After any problems are resolved, with each state that is, the CDC staff compose data reports and share them with state coordinators. State by state, numbers are tweaked so that weighting is possible: “Once limited data cleanup and smaller fixes specific to each state and year are completed data are ready for assigning weights and adding calculated variables.”
+
+After weighting and adding calculated variables, analysis is performed. Apparently, however, we are NOT required to "weigh" the data, as that is beyond the scope of this course, according to a mentor.
+
+By the way, all of this information can be found at the CDC's website: http://www.cdc.gov/brfss/annual_data/annual_2013.html
+Accessed 10/22/16
+
+Because the site claims that, "All BRFSS data should be analyzed using complex sampling procedures," and then goes on to name advanced methods and procedures beyond the scope of this class, it isn't really possible for us as students to generalize very well from a sample to a larger population, if at all. Even though we might know in real life several correlations of data therein, We must remember that "Correlation does not imply causation." This means that it is a logical fallacy (an invalid argument) to assume that, by definition, it NECESSARILY means that we can say that one thing causes another solely because we find a correlation. We have to go a step further to find causality... which we can't. 
+
+According to Professor Hood, on the message boards for this class, "We are not being asked to make hard conclusions of statistical significance (there are no rubric questions for that). we are being asked to describe in summary." 
+
+This final project is an "Exploratory Data Analysis," meant specifically to describe and "explore" the data in the data frame. There may be some potential correlations between several variables, but this analysis is certainly NOT a CAUSAL analysis. 
+
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+Obesity and the USA 
+
+The United States is currently facing an obesity epidemic. Is there some sort of a correlation between obesity and high cholesterol?
+
+
+**Research quesion 2:**
+
+Does being both obese and having a high cholesterol level affect men and women similarly? Does one gender have a higher rate of obesity then the other? 
+
+
+**Research quesion 3:**
+
+With respect to people who are obese and have a high level of cholesterol: Do they have any form of health care coverage?
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+
+
+##VARIABLES AND DATA FRAMES BEING USED: 
+##X_rfbmi5 "those who are overweight or obese"
+##X_bmi5cat "the 5 categories of BMI types"
+##X_rfchol "people who have high cholesterol"
+##“weightandchol” a concatenation of X_rfchol and X_rfbmi5
+##sex "gender"
+##"weightcholsex" a concatenation of the above and sex
+##"X_hcvu651" those who reported having healthcare 
+##"weightcholhc" a concatenation of the weight variable, the cholesterol variable, and the healthcare variable.
+
+**Research quesion 1:**
+
+for obesity, let's look at a brief tibble
+```{r}
+##A 5x2 “tibble” that summarizes the 4 categories of weight
+brfss2013 %>%
+group_by(X_bmi5cat) %>%
+summarize(count = n()) %>%
+na.omit()
+
+## As you can see, overweight and obese people account for the vast majority of those surveyed. Comparatively, very few people surveyed were underweight.
+
+```
+
+##For question 1 
+
+Subsetting the data into a smaller data frame and removing NA's
+```{r}
+weightandchol <- brfss2013 %>%
+select(X_rfbmi5,X_rfchol) %>%
+na.omit()
+```
+
+
+##Tibble showing that those with high bmi's are more likely to have high cholesterol
+```{r}
+weightandchol %>%
+group_by(X_rfbmi5) %>%
+summarize(count = n())
+```
+
+##This Bar graph shows that those who are overweight or obese are more likely to have a high cholesterol level. In fact, those who were obese were twice as likely to have high cholesterol as those who were not. 
+
+```{r}
+ggplot(weightandchol, aes(x=X_rfbmi5, fill = X_rfchol)) + geom_bar()
+```
+
+
+##So, there seems to be some connection between being overweight and obese, and having a high level of cholesterol.
+
+
+**Research quesion 2:**
+
+##For the gender question, we use the 2 variables concatinated in the first question, along with the variable "sex" to see if there's any relationship.
+```{r}
+weightcholsex <- brfss2013 %>%
+select(X_rfbmi5,X_rfchol,sex) %>%
+na.omit()
+
+```
+
+##After concatonating the "weightcholsex" dataframe, we make a graph for three categorical variables:
+
+```{r}
+weightcholsex$X_rfbmi5 <- as.factor(weightcholsex$X_rfbmi5)
+weightcholsex$X_rfchol <- as.factor(weightcholsex$X_rfchol)
+weightcholsex$sex <- as.factor(weightcholsex$sex)
+ggplot(weightcholsex, aes(x=X_rfchol, fill= sex )) + geom_bar(position = "dodge") + facet_wrap(~X_rfbmi5, ncol=2)
+```
+According to the graph, there appear to be twice as many females as compared to males who don't have weight problems regardless of cholesterol level (left side under "no" for "no weight problem"). For those individuals who do have weight problems (right side under "Yes" for "weight problems"), women outnumber men by a small margin with respect to weightiness regardless of cholesterol level, although it's very close. 
+
+##Comparatively, the graph makes sense, as there are more individuals who are obese and have high cholesterol than there are individuals who are not obese and have high cholesterol levels. 
+
+##Apparently, we can conject that females who are overweight have more cholesterol problems than overweight men do (right part).
+
+
+
+
+**Research quesion 3:**
+##Let's look at a brief tibble:
+```{r}
+brfss2013 %>%
+group_by(X_hcvu651) %>%
+summarize(count = n()) %>%
+na.omit()
+```
+##Fortunately, excluding the NA's, it appears that people without healthcare are outnumbered by those who do by a factor of FIVE. That's a good thing, as significantly more people have healthcare than those who do not.
+
+##For the healthcare question, we begin by using three variables, X_rfbmi , X_rfchol , and X_hc651 and concatenate them into a separate data frame:
+```{r}
+weightcholhc <- brfss2013 %>%
+select(X_rfbmi5,X_rfchol,X_hcvu651) %>%
+na.omit()
+```
+
+##Now, let's make a bar graph for 3 categorical variables:
+```{r}
+weightcholhc$X_rfbmi5 <- as.factor(weightcholhc$X_rfbmi5)
+weightcholhc$X_rfchol <- as.factor(weightcholhc$X_rfchol)
+weightcholhc$X_hcvu651 <- as.factor(weightcholhc$X_hcvu651)
+ggplot(weightcholhc, aes(x=X_rfchol, fill= X_hcvu651 )) + geom_bar(position = "dodge") + facet_wrap(~X_rfbmi5, ncol=2)
+```
+
+
+##This graph shows us that those who have healthcare vastly outnumber those who do not. Furthermore, it appears that those individuals who are in fact overweight/obese AND have high cholesterol levels are actually more likely to have health insurance than those who are not obese, regardless of cholesterol level.
+
+
+
+##In conclusion, it appears that being overweight/obese and having a high cholesterol level are related...somehow. Apparently, in this survey, women who do not have weight problems outnumber their male counterparts by a factor of two, regardless of cholesterol level. Although if they do have weight problems, the difference in weight between men and women is significantly less, regardless of cholesterol level, although men have a bit less weight problem. 
+
+##Finally, we can say, fortunately, that those who do have health problems, especially those who are both overweight/obese AND have high cholesterol, have some form of healthcare. In fact, there were about five times as many people in the survey (not counting NA's) who reported having healthcare than those who did not. Again, for emphasis, it is impossible to make a causal connection between any of the variables, as this is simply an "exploratory data analysis," according to Dr. Hood, a mentor for this class. 
+
+##This analysis should not be confused with the gold-standard causal analysis. It's just a comparison of variables, none of which were weighted, and lots of which were eliminated because they were NA's. 
+
+##Thank you, and I hope you enjoyed my project!
+
+
+
+
